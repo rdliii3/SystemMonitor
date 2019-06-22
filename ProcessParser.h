@@ -93,6 +93,30 @@ string ProcessParser::getCpuPercent(string pid) {
     float seconds = uptime - (starttime/freq);
     result = 100.0*((total_time/freq)/seconds);
     return to_string(result);
-
-
 }
+
+string ProcessParser::getProcUpTime(string pid) {
+    string line;
+    string value;
+    float result;
+
+    //Retrieve data
+    ifstream fin;
+    Util::getStream(Path::basePath() + pid + Path::statPath(), fin);
+    getline(fin, line);
+    //parse data
+    istringstream buf(line);
+    istream_iterator<string> beg(buf), end; //split on whitespace
+    vector<string> values(beg, end);
+    result = float(stof(values[13])/sysconf(_SC_CLK_TCK));
+    return to_string(result);
+}
+
+long int ProcessParser::getSysUpTime() {
+    long double value;
+    ifstream fin;
+    Util::getStream(Path::basePath() + Path::upTimePath(), fin);
+    fin >> value;
+    return long int(value);
+}
+
