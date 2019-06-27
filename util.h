@@ -1,6 +1,8 @@
 #include <string>
 #include <fstream>
 
+#ifndef UTIL_H
+#define UTIL_H
 // Classic helper function
 class Util {
 
@@ -55,3 +57,5 @@ void Util::getStream(std::string path, std::ifstream& stream){
     }
     //return stream;
 }
+
+#endif

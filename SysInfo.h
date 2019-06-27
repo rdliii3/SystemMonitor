@@ -2,6 +2,7 @@
 #include <iostream>
 #include <vector>
 #include "ProcessParser.h"
+
 class SysInfo {
 private:
     std::vector<std::string> lastCpuStats;
@@ -60,6 +61,7 @@ void SysInfo::getOtherCores(int _size){
 void SysInfo::setLastCpuMeasures(){
  this->lastCpuStats = ProcessParser::getSysCpuPercent();
 }
+
 void SysInfo::setCpuCoresStats(){
 // Getting data from files (previous data is required)
     for(int i=0;i<this->currentCpuCoresStats.size();i++){
@@ -71,6 +73,7 @@ void SysInfo::setCpuCoresStats(){
     }
     this->lastCpuCoresStats = this->currentCpuCoresStats;
 }
+
 void SysInfo::setAttributes(){
 // getting parsed data
     this-> memPercent = ProcessParser::getSysRamPercent();
@@ -84,6 +87,7 @@ void SysInfo::setAttributes(){
     this->setCpuCoresStats();
 
 }
+
 // Constructing string for every core data display
 std::vector<std::string> SysInfo::getCoresStats()const{
     std::vector<std::string> result= std::vector<std::string>();
@@ -100,6 +104,7 @@ std::vector<std::string> SysInfo::getCoresStats()const{
     }
     return result;
 }
+
 std::string SysInfo::getCpuPercent()const {
     return this->cpuPercent;
 }

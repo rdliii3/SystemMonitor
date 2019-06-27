@@ -52,8 +52,9 @@ string ProcessParser::getVmSize(string pid){
     float result;
 
     //Retrieve data from file
-    ifstream fin = Util::getStream(Path::basePath() +
-                                   pid + Path::statusPath());
+    ifstream fin;
+    Util::getStream(Path::basePath() + pid + Path::statusPath(), fin);
+
     while (getline(fin, line)){
         if (line.compare(0, name.size(), name) == 0) {
             //parse line
@@ -73,8 +74,8 @@ string ProcessParser::getCpuPercent(string pid) {
     float result;
 
     //Retrieve data from file
-    ifstream fin = Util::getStream(Path::basePath() +
-                                   pid + Path::statPath());
+    ifstream fin; 
+    Util::getStream(Path::basePath() + pid + Path::statPath(), fin);
     getline(fin, line);
     //Parse data
     istringstream buf(line);
@@ -90,7 +91,7 @@ string ProcessParser::getCpuPercent(string pid) {
     float freq = sysconf(_SC_CLK_TCK);
     float total_time = utime + stime + cutime + cstime;
     float seconds = uptime - (starttime/freq);
-    results = 100.0*((total_time/freq)/seconds);
+    result = 100.0*((total_time/freq)/seconds);
     return to_string(result);
 
 
