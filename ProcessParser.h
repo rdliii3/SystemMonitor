@@ -117,6 +117,59 @@ long int ProcessParser::getSysUpTime() {
     ifstream fin;
     Util::getStream(Path::basePath() + Path::upTimePath(), fin);
     fin >> value;
-    return long int(value);
+    return (long int)value;
 }
 
+string ProcessParser::getProcUser(string pid) {
+  string line;
+  string name = "Uid:";
+  string uid;
+  string username;
+
+  ifstream fin;
+  Util::getStream(Path::basePath() + pid + Path::statusPath(), fin);
+  while (getline(fin, line)) {
+    if(line.compare(0, name.size(), name) == 0){
+      istringstream buf(line);
+      istream_iterator<string> beg(buf), end;
+      vector<string> values(beg, end);
+      uid = values[1];
+      break;
+    }
+  }
+  fin.close();
+  Util::getStream("/etc/passwd", fin);
+  while (getline(fin, line)) {
+    if(line.find("x:" + uid) != std::string::npos) {
+      username = line.substr(0, line.find(":"));
+      return username;
+    }
+  }
+  return "";
+}
+
+vector<string> ProcessParser::getPidList() {
+  DIR* dir;
+  vector<string> container;
+  
+  if (!(dir = opendir("/proc")))
+    throw std::runtime_error(std::strerror(errno));
+
+  while (dirent* dirp = readdir(dir)) {
+    if (dirp->d_type != DT_DIR)//skip
+      continue;
+    if (all_of(dirp->d_name,dirp->d_name + std::strlen(dirp->d_name), [](char c){ return isdigit(c); }))
+      container.push_back(dirp->d_name);
+  }
+
+  closedir(dir);
+  return container;
+}
+
+string ProcessParser::getCmd(string pid) {
+  string line;
+  ifstream fin;
+  Util::getStream(Path::basePath() + pid + Path::cmdPath(), fin);
+  getline(fin, line);
+  return line;
+}
