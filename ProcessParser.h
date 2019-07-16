@@ -34,6 +34,8 @@ private:
         static std::string getProcUpTime(string pid);
         static string getProcUser(string pid);
         static vector<string> getSysCpuPercent(string coreNumber = "");
+	static float getSysActiveCpuTime(vector<string> values);
+	static float getSysIdleCpuTime(vector<string> values);
         static float getSysRamPercent();
         static string getSysKernelVersion();
         static int getNumberOfCores();
@@ -41,7 +43,7 @@ private:
         static int getTotalNumberOfProcesses();
         static int getNumberOfRunningProcesses();
         static string getOSName();
-        static std::string PrintCpuStats(std::vector<std::string> values1, std::vector<std::string>values2);
+        static string PrintCpuStats(vector<string> values1, vector<string> values2);
         static bool isPidExisting(string pid);
 };
 
@@ -172,4 +174,62 @@ string ProcessParser::getCmd(string pid) {
   Util::getStream(Path::basePath() + pid + Path::cmdPath(), fin);
   getline(fin, line);
   return line;
+}
+
+int ProcessParser::getNumberOfCores() {
+  string line;
+  string name = "cpu cores";
+  string dummy;
+  int cores;
+
+  ifstream fin;
+  Util::getStream(Path::basePath() + "cpuinfo", fin);
+  while( getline(fin, line) ) {
+    if(line.compare(0, name.size(), name) == 0) {
+      istringstream buf(line);
+      buf >> dummy >> dummy >> cores;
+      return cores;
+    }
+  }
+  return 0;
+}
+
+vector<string> ProcessParser::getSysCpuPercent(string coreNumber) {
+  string line;
+  string name = "cpu" + coreNumber; //does core number (as retrieved previously) make sense here for multi processor systems? /proc/stat seems to indicate cpu# corresponds to processor and core number is within the processor
+
+  ifstream fin;
+  Util::getStream(Path::basePath() + "stat", fin);
+  while( getline(fin, line) ) {
+    if(line.compare(0, name.size(), name) == 0) {
+      istringstream buf(line);
+      istream_iterator<string> beg(buf), end;
+      vector<string> values(beg, end);
+      return values;
+    }
+  }
+  return vector<string>();
+}
+
+float ProcessParser::getSysActiveCpuTime(vector<string> values) {
+  return (stof(values[S_USER]) +
+	  stof(values[S_NICE]) +
+	  stof(values[S_SYSTEM]) +
+	  stof(values[S_IRQ]) +
+	  stof(values[S_SOFTIRQ]) +
+	  stof(values[S_STEAL]) +
+	  stof(values[S_GUEST]) +
+	  stof(values[S_GUEST_NICE]));
+}
+
+float ProcessParser::getSysIdleCpuTime(vector<string> values) {
+  return (stof(values[S_IDLE]) + stof(values[S_IOWAIT]));
+}
+
+string ProcessParser::PrintCpuStats(vector<string> values1, vector<string> values2) {
+  float cpuTime = getSysActiveCpuTime(values2) - getSysActiveCpuTime(values1);
+  float idleTime = getSysIdleCpuTime(values2) - getSysIdleCpuTime(values1);
+  float totalTime = cpuTime + idleTime;
+  float result = cpuTime/totalTime * 100.0;
+  return to_string(result);
 }

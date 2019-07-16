@@ -1,7 +1,7 @@
 #include <string>
 using namespace std;
 
-enum class CPUStates{
+enum CPUStates{
 	S_USER = 1,
 	S_NICE,
 	S_SYSTEM,
