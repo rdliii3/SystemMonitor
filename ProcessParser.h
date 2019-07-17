@@ -47,7 +47,7 @@ private:
         static bool isPidExisting(string pid);
 };
 
-// TODO: Define all of the above functions below:
+
 string ProcessParser::getVmSize(string pid){
     string line;
     string name = "VmData";
@@ -232,4 +232,169 @@ string ProcessParser::PrintCpuStats(vector<string> values1, vector<string> value
   float totalTime = cpuTime + idleTime;
   float result = cpuTime/totalTime * 100.0;
   return to_string(result);
+}
+
+float ProcessParser::getSysRamPercent() {
+  string line;
+  string name1 = "MemFree:";
+  string name2 = "MemAvailable:";
+  string name3 = "Buffers:";
+  float memfree = 0.0f;
+  float memaval = 0.0f;
+  float membuf = 0.0f;
+  
+  ifstream fin;
+  Util::getStream(Path::basePath() + Path::memInfoPath(), fin);
+  
+  int lineflag = 0;
+  while(getline(fin, line)) {
+    if (line.compare(0, name1.size(), name1) == 0) {
+      istringstream buf(line);
+      istream_iterator<string> beg(buf), end;
+      vector<string> values(beg, end);
+      memfree = stof(values[1]);
+      lineflag++;
+      continue;
+    }
+    if (line.compare(0, name2.size(), name2) == 0) {
+      istringstream buf(line);
+      istream_iterator<string> beg(buf), end;
+      vector<string> values(beg, end);
+      memaval = stof(values[1]);
+      lineflag++;
+      continue;
+    }
+    if (line.compare(0, name3.size(), name3) == 0) {
+      istringstream buf(line);
+      istream_iterator<string> beg(buf), end;
+      vector<string> values(beg, end);
+      membuf = stof(values[1]);
+      lineflag++;
+      continue;
+    }
+    if (lineflag == 3) //all needed data has been collected
+      break;
+  }
+
+  float mempercent = 100.0 * (1 - memfree / (memaval- membuf));
+  return mempercent;
+}
+
+int ProcessParser::getTotalNumberOfProcesses() {
+  string line;
+  string name = "processes";
+  int result = 0;
+  
+  ifstream fin;
+  Util::getStream(Path::basePath() + Path::statPath(), fin);
+
+  while(getline(fin, line)) {
+    if (line.compare(0, name.size(), name) == 0) {
+      istringstream buf(line);
+      istream_iterator<string> beg(buf), end;
+      vector<string> values(beg, end);
+      result += stoi(values[1]);
+      break;
+    }
+  }
+  return result;
+}
+
+int ProcessParser::getNumberOfRunningProcesses() {
+  string line;
+  string name = "procs_running";
+  int result = 0;
+  
+  ifstream fin;
+  Util::getStream(Path::basePath() + Path::statPath(), fin);
+
+  while(getline(fin, line)) {
+    if (line.compare(0, name.size(), name) == 0) {
+      istringstream buf(line);
+      istream_iterator<string> beg(buf), end;
+      vector<string> values(beg, end);
+      result += stoi(values[1]);
+      break;
+    }
+  }
+  return result;
+}
+
+int ProcessParser::getTotalThreads() {
+  string line;
+  string name = "Threads:";
+  int result = 0;
+
+  vector<string> pidlist = getPidList();
+
+  for(int i = 0; i < pidlist.size(); i++) {
+    string pid = pidlist[i];
+    ifstream fin;
+    Util::getStream(Path::basePath() + pid + Path::statusPath(), fin);
+    while(getline(fin, line)) {
+      if (line.compare(0, name.size(), name) == 0) {
+	istringstream buf(line);
+	istream_iterator<string> beg(buf), end;
+	vector<string> values(beg, end);
+	result += stoi(values[1]);
+	break;
+      }
+    }
+  }
+  return result;
+}
+
+string ProcessParser::getOSName() {
+  string line;
+  string name = "PRETTY_NAME";
+  string result;
+
+  ifstream fin;
+  Util::getStream("/etc/os-release", fin);
+  while(getline(fin, line)){
+    if (line.compare(0, name.size(), name) == 0) {
+      std::size_t idx = line.find("=");
+      idx++;
+      result = line.substr(idx);
+      result.erase(std::remove(result.begin(), result.end(), '"'), result.end());
+      return result;
+    }
+  }
+  return "";
+}
+
+string ProcessParser::getSysKernelVersion() {
+  string line;
+  string name = "Linux version";
+
+  ifstream fin;
+  Util::getStream(Path::basePath() + Path::versionPath(), fin);
+
+  while(getline(fin, line)) {
+    if (line.compare(0, name.size(), name) == 0) {
+      istringstream buf(line);
+      istream_iterator<string> beg(buf), end;
+      vector<string> values(beg, end);
+      return values[2];
+    }
+  }
+  return "";
+}
+
+bool ProcessParser::isPidExisting(string pid) {
+  DIR* dir;
+  
+  if (!(dir = opendir("/proc")))
+    throw std::runtime_error(std::strerror(errno));
+
+  while (dirent* dirp = readdir(dir)) {
+    if (dirp->d_type != DT_DIR)//skip
+      continue;
+    if (dirp->d_name == pid) {
+      closedir(dir);
+      return true;
+    }
+  }
+  closedir(dir);
+  return false;
 }
